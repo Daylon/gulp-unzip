@@ -1,26 +1,35 @@
-var through = require('through2');
-var gutil = require('gulp-util')
-var unzip = require('unzipper')
-var fs = require('fs')
-var defaults = require('defaults')
+'use strict'
 
-module.exports = function(options){
+let through = require('through2')
+let gutil = require('gulp-util')
+let unzip = require('unzipper')
+let fs = require('fs')
+let defaults = require('defaults')
+let path = require('path')
+
+module.exports = function(options = {}){
   function transform(file, enc, callback){
     if (file.isNull()) {
-      this.push(file);
-      return callback();
+      this.push(file)
+      return callback()
     }
 
-    var opts = {};
-    options = options || {};
-    opts.filter = options.filter || function () { return true; };
-    opts.keepEmpty = options.keepEmpty || false;
+    let opts = {}
+    , extname = path.extname(file.path)
+    , basename = path.basename(file.path, extname)
+    , getCwd = (archiveName = '') => `./${archiveName}${archiveName.length > 0 ? '/' : ''}`
+    opts.filter = function () { return true; }
+    opts.keepEmpty = false
+    opts.useFolder = false
+    Object.assign(opts, options)
+
+
 
     // unzip file
-    var self = this
+    let self = this
     file.pipe(unzip.Parse())
       .on('entry', function(entry){
-        var chunks = []
+        let chunks = []
         if(!opts.filter(entry)){
           entry.autodrain()
           // skip entry
@@ -28,13 +37,12 @@ module.exports = function(options){
         }
 
         entry.pipe(through.obj(function(chunk, enc, cb){
-          // gutil.log("Find file: "+ entry.path)
           chunks.push(chunk)
           cb()
         }, function(cb){
           if(entry.type == 'File' && (chunks.length > 0 || opts.keepEmpty)){
             self.push(new gutil.File({
-              cwd : "./",
+              cwd : getCwd(opts.useFolder === true ? basename : ''),
               path : entry.path,
               contents: Buffer.concat(chunks)
             }))
@@ -45,5 +53,5 @@ module.exports = function(options){
         callback()
       })
   }
-  return through.obj(transform);
+  return through.obj(transform)
 }
