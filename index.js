@@ -17,13 +17,11 @@ module.exports = function(options = {}){
     let opts = {}
     , extname = path.extname(file.path)
     , basename = path.basename(file.path, extname)
-    , getCwd = (archiveName = '') => `./${archiveName}${archiveName.length > 0 ? '/' : ''}`
+    , getCwd = (archiveName = '', entryPath) => `./${archiveName}${archiveName.length > 0 ? '/' : ''}${entryPath}`
     opts.filter = function () { return true; }
     opts.keepEmpty = false
     opts.useFolder = false
     Object.assign(opts, options)
-
-
 
     // unzip file
     let self = this
@@ -42,8 +40,8 @@ module.exports = function(options = {}){
         }, function(cb){
           if(entry.type == 'File' && (chunks.length > 0 || opts.keepEmpty)){
             self.push(new gutil.File({
-              cwd : getCwd(opts.useFolder === true ? basename : ''),
-              path : entry.path,
+              cwd : './',
+              path : getCwd(opts.useFolder === true ? basename : '', entry.path),
               contents: Buffer.concat(chunks)
             }))
           }
